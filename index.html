@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>UPLOADER</title>
+</head>
+<body>
+
+	<h1>UPLOADER  8=====D</h1>	
+	<input type="file" enctype="multipart/form-data" accept="*/*" id="btnupload" onchange="send(this);" />	
+
+	<p id="status"></p>
+
+	<script
+		src="https://code.jquery.com/jquery-3.3.1.js"
+		integrity="sha256-2Kok7MbOyxpgUVvAk/HJ2jigOSYS2auK4Pfzbm7uH60="
+		crossorigin="anonymous"></script>
+
+
+	<script>
+
+		//var staticUrl = "http://localhost:18507/api/v1/applications/d9ad362086da4fe1b60f02212d601ce7/fileuploads";
+		var staticUrl = "https://localhost:44358/api/static/uploadfiles";
+		var staticToken = "d9ad362086da4fe1b60f02212d601ce7";
+
+		/***
+		*
+		*
+		*/
+		function send(element){
+
+			console.log("ELEMENT", element);
+
+			var file = $(element).get(0).files[0]; 
+
+			console.log("FILE ",file);
+
+			upload(file);
+		}
+
+
+		/***
+		*
+		*
+		*/
+		function upload(file) {
+
+			console.log("Carregando arquivo de " + file.size / 1000 + "Kb");
+			
+			//define arquivp
+			var data = new FormData();
+			data.append("file", file);
+
+			//define url
+			//var url = staticUrl + "?token=" + staticToken;
+			var url = staticUrl;
+			$.ajax({
+				type: "POST",
+				url: url,
+				data: data,
+				contentType: false,
+				processData: false,
+				cache: false,
+				success: function (dados) {
+					console.log("SUCCESS",dados);
+
+					var tmp = {
+						filename: dados[0].Path  //@todo -> Se for utilizar mais de um upload ao mesmo tempo, iterar nesse array                               
+					}	
+
+					$("#status").html(tmp.filename);				
+				},
+				error: function (dados) {
+					console.log("ERROR",dados);					
+
+					$("#status").html(dados);
+				}
+			});
+		}
+
+	</script>
+
+
+</body>
+</html>
