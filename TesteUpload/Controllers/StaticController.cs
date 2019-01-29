@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -15,51 +16,68 @@ namespace TesteUpload.Controllers
     [ApiController]
     public class StaticController : ControllerBase
     {
-
-        public string ImageFolder { get; set; }
-
-        public string DocumentFolder { get; set; }
-
+        UploadFilesConfiguration UploadConfig { get; }
+        public StaticController(UploadFilesConfiguration uploadConfig)
+        {
+            UploadConfig = uploadConfig;
+        }
 
         [HttpPost("UploadFiles")]
         public async Task<IActionResult> Post([FromForm(Name = "file")] List<IFormFile> files)
         {
-            long size = files.Sum(f => f.Length);
-
-            var filePath = "Content/uploads/static/_docs/{0}";
-
-            foreach (var formFile in files)
+            try
             {
-                if (formFile.Length > 0)
-                {
-                    //if (formFile.ContentType.Any(f => f.Equals()))
-                    //{
+                var filePath = string.Empty;
 
-                    //}
-                    using (var stream = new FileStream(string.Format(filePath, GetLocalFileName(formFile)), FileMode.Create))
+                foreach (var formFile in files)
+                {
+                    if (formFile.Length > 0)
                     {
-                        await formFile.CopyToAsync(stream);
+                        FileValidation(formFile);
+
+                        filePath = string.Format(GetLocalPath(formFile), GetLocalFileName(formFile));
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
+                        {
+                            await formFile.CopyToAsync(stream);
+                        }
+
                     }
                 }
+
+                return Ok(UploadConfig.StaticCurrentDomain + filePath);
             }
-
-            // process uploaded files
-            // Don't rely on or trust the FileName property without validation.
-
-            return Ok(new { count = files.Count, size, filePath });
-        }
-
-        private void FileValidation(List<IFormFile> colFormFile)
-        {
-            var isNotValid = colFormFile.Any(f => 
-                                                f.ContentType != "image/png" || 
-                                                f.ContentType != "image/jpeg" || 
-                                                f.ContentType != "image/jpg" ||
-                                                f.ContentType != "application/pdf" ||
-                                                f.ContentType != "text/plain");
-            if (true)
+            catch (Exception ex)
             {
 
+                throw ex;
+            }
+            
+        }
+
+        private void FileValidation(IFormFile formFile)
+        {
+            var formatos = UploadConfig.Formats.Split(',');
+            if (!formatos.Any(f => f.Trim().ToLower().Equals(formFile.ContentType)))
+            {
+                throw new UnsupportedMediaTypeException("Tipo de arquivo não suportado", new MediaTypeHeaderValue(formFile.ContentType));
+            }
+            else if (UploadConfig.MaxLength <= formFile.Length)
+            {
+                throw new UnsupportedMediaTypeException("Tamanho de arquivo não suportado", new MediaTypeHeaderValue(formFile.ContentType));
+            }
+        }
+
+        private string GetLocalPath(IFormFile ff)
+        {
+            var format = ff.ContentType;
+            if (format.Equals("image/png") || format.Equals("image/jpeg") || format.Equals("image/jpg"))
+            {
+                return UploadConfig.ImageFolder;
+            }
+            else
+            {
+                return UploadConfig.DocumentFolder;
             }
         }
 
@@ -70,7 +88,7 @@ namespace TesteUpload.Controllers
                 string fileName = !string.IsNullOrWhiteSpace(ff.FileName) ? ff.FileName : "SemNome.data";
 
                 var format = ff.ContentType;
-                if ((format.Equals("image/png") || format.Equals("image/jpeg") || format.Equals("image/jpg") || format.Equals("video/mp4")))
+                if (format.Equals("image/png") || format.Equals("image/jpeg") || format.Equals("image/jpg"))
                 {
                     fileName = "." + format.Split('/')[1];
                 }
@@ -90,6 +108,19 @@ namespace TesteUpload.Controllers
             }
 
         }
+    }
+
+    public class UploadFilesConfiguration
+    {
+        public string Formats { get; set; }
+
+        public int MaxLength { get; set; }
+
+        public string ImageFolder { get; set; }
+
+        public string  DocumentFolder { get; set; }
+
+        public string StaticCurrentDomain { get; set; }
     }
 
   

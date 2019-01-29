@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TesteUpload.Controllers;
 
 namespace TesteUpload
 {
@@ -31,6 +32,10 @@ namespace TesteUpload
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
+            var config = new UploadFilesConfiguration();
+            Configuration.Bind("UploadFiles", config);
+            services.AddSingleton(config);
+
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
         }
 
@@ -46,6 +51,13 @@ namespace TesteUpload
                 app.UseExceptionHandler("/Home/Error");
                 app.UseHsts();
             }
+
+            app.UseCors(options => options
+                .AllowAnyOrigin()
+                .AllowAnyMethod()
+                .AllowAnyHeader()
+                .AllowCredentials()
+            );
 
             app.UseHttpsRedirection();
             app.UseStaticFiles();
