@@ -23,36 +23,28 @@ namespace TesteUpload.Controllers
         }
 
         [HttpPost("UploadFiles")]
-        public async Task<IActionResult> Post([FromForm(Name = "file")] List<IFormFile> files)
+        public async Task<IActionResult> Post([FromForm(Name = "file")] IFormFile file)
         {
-            try
+            if (file == null)
             {
-                var filePath = string.Empty;
-
-                foreach (var formFile in files)
-                {
-                    if (formFile.Length > 0)
-                    {
-                        FileValidation(formFile);
-
-                        filePath = string.Format(GetLocalPath(formFile), GetLocalFileName(formFile));
-
-                        using (var stream = new FileStream(filePath, FileMode.Create))
-                        {
-                            await formFile.CopyToAsync(stream);
-                        }
-
-                    }
-                }
-
-                return Ok(UploadConfig.StaticCurrentDomain + filePath);
+                return NotFound("Arquivo não enviado");
             }
-            catch (Exception ex)
+
+            var filePath = string.Empty;
+
+            FileValidation(file);
+
+            filePath = string.Format(GetLocalPath(file), GetLocalFileName(file));
+
+            using (var stream = new FileStream("wwwroot" + filePath, FileMode.Create))
             {
-
-                throw ex;
+                await file.CopyToAsync(stream);
             }
-            
+
+            var fileReturn = UploadConfig.StaticCurrentDomain + filePath;
+
+            return Ok(fileReturn);
+
         }
 
         private void FileValidation(IFormFile formFile)
